@@ -164,6 +164,11 @@
       box-shadow: 0 12px 30px rgba(12, 22, 40, 0.2);
     }
 
+    .bubble-text {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
     .bubble.user {
       background: linear-gradient(140deg, rgba(10, 132, 255, 0.95), rgba(10, 132, 255, 0.7));
     }
@@ -204,6 +209,10 @@
     .bubble .copy-btn:hover {
       transform: translateY(-1px);
       background: rgba(255, 255, 255, 0.2);
+    }
+
+    .bubble.copied {
+      box-shadow: 0 14px 32px rgba(10, 132, 255, 0.35);
     }
 
     .thinking {
@@ -759,13 +768,16 @@
     }
 
     function copyText(text, source) {
-      navigator.clipboard.writeText(text).then(() => {
-        source.classList.add("copied");
-        showToast("Copied to Clipboard", { duration: 1500, tone: "neutral" });
-        setTimeout(() => source.classList.remove("copied"), 1500);
-      }).catch(() => {
-        showToast("Copy Failed", { tone: "error" });
-      });
+      navigator.clipboard
+        .writeText(text)
+        .then(() => {
+          source.classList.add("copied");
+          showToast("Copied to Clipboard", { duration: 1500, tone: "neutral" });
+          setTimeout(() => source.classList.remove("copied"), 1500);
+        })
+        .catch(() => {
+          showToast("Copy Failed", { tone: "error" });
+        });
     }
 
     // Typing Indicator Management
@@ -902,6 +914,9 @@
 
       lastUserMessage = trimmed;
 
+      setSendingState(true);
+      messageInput.value = "";
+
       const userRow = createMessageRow("user", trimmed);
       messageList.appendChild(userRow);
       scrollToBottom();
@@ -921,6 +936,8 @@
         if (error.message.includes("CORS")) {
           showToast("This endpoint blocks browser requests. Use a proxy (e.g., Vercel/Cloudflare Worker).", { duration: 4500 });
         }
+      } finally {
+        setSendingState(false);
       }
     }
 
@@ -960,14 +977,23 @@
     }
 
     // Event Listeners
+    function setSendingState(isSending) {
+      sendBtn.disabled = isSending;
+      if (isSending) {
+        sendBtn.textContent = "Sending";
+      } else {
+        sendBtn.textContent = "Send";
+        messageInput.focus();
+      }
+    }
+
     sendBtn.addEventListener("click", () => {
       const message = messageInput.value;
-      messageInput.value = "";
       sendMessageFlow(message);
     });
 
     messageInput.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" && !event.shiftKey) {
+      if (event.key === "Enter" && !event.shiftKey && !sendBtn.disabled) {
         event.preventDefault();
         sendBtn.click();
       }
